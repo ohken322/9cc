@@ -20,5 +20,10 @@ assert 0 0
 assert 42 42
 assert 21 "5+20-4"
 assert 41 " 12 + 34 - 5 "
+assert 26 "2*3 + 4*5"
+assert 9 " 5/3 + 4/2*4"
+assert 4 "(3+5)/2"
+assert 10 "- 10 + 20"
+assert 5 " -+-5 "
 
 echo OK
