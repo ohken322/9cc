@@ -8,6 +8,7 @@
 // トークンの種類
 typedef enum {
   TK_RESERVED, // 記号
+  TK_IDENT,    // 識別子(変数)
   TK_NUM,      // 整数トークン
   TK_EOF,      // 入力の終わりを表すトークン
 } TokenKind;
@@ -32,6 +33,8 @@ typedef enum {
   ND_SUB, // -
   ND_MUL, // *
   ND_DIV, // /
+  ND_ASSIGN, // =
+  ND_LVAR, // variables
   ND_EQ,  // ==
   ND_NE,  // !=
   ND_LT,  // <  (>, >= についてはノードの順を逆にすることで対応する)
@@ -47,6 +50,7 @@ struct Node {
   Node *lhs;     // 左辺
   Node *rhs;     // 右辺
   int val;       // kindがND_NUMの場合のみ使う
+  int offset;    // kindがND_LVARの場合のみ使う
 };
 
 Node *new_node(NodeKind kind) {
@@ -85,6 +89,15 @@ bool consume(char *op) {
     return false;
   token = token->next;
   return true;
+}
+
+Token *consume_ident() {
+  Token *tok;
+  if (token->kind != TK_IDENT)
+    return NULL;
+  tok = token;
+  token = token->next;
+  return tok;
 }
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
@@ -143,8 +156,16 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    if (strchr("+-*/()<>", *p)) {
+    if (strchr("+-*/()<>=;", *p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
+      cur->len = 1;
+      continue;
+    }
+
+    if ('a' <= *p && *p <= 'z') {
+      // fprintf(stderr, "%c\n", *p);
+      cur = new_token(TK_IDENT, cur, p++, 1);
+      cur->len = 1;
       continue;
     }
 
@@ -163,7 +184,11 @@ new_token(TK_EOF, cur, p, 0);
   return head.next;
 }
 
+Node *code[100];
+
+Node *stmt();
 Node *expr();
+Node *assign();
 Node *equality();
 Node *relational();
 Node *add();
@@ -171,8 +196,28 @@ Node *mul();
 Node *primary();
 Node *unary();
 
+void program() {
+  int i = 0;
+  while (!at_eof())
+    code[i++] = stmt();
+  code[i] = NULL;
+}
+
+Node *stmt() {
+  Node *node = expr();
+  expect(";");
+  return node;
+}
+
 Node *expr() {
-  return equality();
+  return assign();
+}
+
+Node *assign() {
+  Node *node = equality();
+  if (consume("="))
+    node = new_binary(ND_ASSIGN, node, assign());
+  return node;
 }
 
 Node *equality() {
@@ -247,13 +292,44 @@ Node *primary() {
     return node;
   }
 
-  // そうでなければ数値のはず
+  Token *tok = consume_ident();
+  if (tok){
+    Node *node = new_node(ND_LVAR);
+    node->offset = (tok->str[0] - 'a' + 1) * 8;
+    return node;
+  }
+
   return new_num(expect_number());
 }
 
+void gen_lval(Node *node) {
+  if (node->kind != ND_LVAR)
+    error("代入の左辺値が変数ではありません");
+
+  printf("  mov rax, rbp\n");
+  printf("  sub rax, %d\n", node->offset);
+  printf("  push rax\n");
+}
+
 void gen(Node *node) {
-  if (node->kind == ND_NUM) {
+  switch (node->kind) {
+  case ND_NUM:
     printf("  push %d\n", node->val);
+    return;
+  case ND_LVAR:
+    gen_lval(node);
+    printf("  pop rax\n");
+    printf("  mov rax, [rax]\n");
+    printf("  push rax\n");
+    return;
+  case ND_ASSIGN:
+    gen_lval(node->lhs);
+    gen(node->rhs);
+
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+    printf("  mov [rax], rdi\n");
+    printf("  push rdi\n");
     return;
   }
 
@@ -312,19 +388,31 @@ int main(int argc, char **argv) {
   // トークナイズしてパースする
   char *user_input = argv[1];
   token = tokenize(user_input);
-  Node *node = expr();
+  program();
 
   // アセンブリの前半部分を出力
   printf(".intel_syntax noprefix\n");
   printf(".globl main\n");
   printf("main:\n");
 
+  // プロローグ
+  // 変数の領域を確保
+  printf("  push rbp\n");
+  printf("  mov rbp, rsp\n");
+  printf("  sub rsp, 208\n");
+  
   // 抽象構文木を下りながらコード生成
-  gen(node);
+  for (int i = 0; code[i]; i++) { // code[i]がNULLポインタのときはforを抜ける
+    gen(code[i]);
+    // スタックトップに式の評価結果が残っているはずなので
+    // それをRAXにロードして関数からの返り値とする
+    printf("  pop rax\n");
+  }
 
-  // スタックトップに式全体の値が残っているはずなので
-  // それをRAXにロードして関数からの返り値とする
-  printf("  pop rax\n");
+  // エピローグ
+  // 最後の式の結果がRAXに残っているのでそれが返り値になる
+  printf("  mov rsp, rbp\n");
+  printf("  pop rbp\n");
   printf("  ret\n");
   return 0;
 }
