@@ -27,6 +27,26 @@ struct Token {
 // 現在着目しているトークン
 Token *token;
 
+typedef struct LVar LVar;
+
+// ローカル変数の型
+struct LVar {
+  LVar *next;
+  char *name; // 変数の名前
+  int len;    // 名前の長さ
+  int offset; // RBPからのオフセット
+};
+
+LVar *locals = NULL;
+
+LVar *find_lvar(Token *tok) {
+  for (LVar *var=locals; var; var = var->next){
+    if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+      return var;
+  }
+  return NULL;
+}
+
 // 抽象構文木のノードの種類
 typedef enum {
   ND_ADD, // +
@@ -136,6 +156,14 @@ bool startswith(char *p, char *q){
   return memcmp(p, q, strlen(q)) == 0;  // pとqを先頭からstrlen(q)だけ比較し，一致するときのみ0が返る
 }
 
+bool is_ident1(char c) {
+  return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+}
+
+bool is_ident2(char c){
+  return is_ident1(c) || ('0' <= c && c <= '9');
+}
+
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize(char *p) {
   Token head;
@@ -162,10 +190,14 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    if ('a' <= *p && *p <= 'z') {
+    if (is_ident1(*p)) {
       // fprintf(stderr, "%c\n", *p);
-      cur = new_token(TK_IDENT, cur, p++, 1);
-      cur->len = 1;
+      char *start = p;
+      do {
+        p++;
+      } while (is_ident2(*p));
+      cur = new_token(TK_IDENT, cur, start, p - start); // 1つ目のstartをpにしててハマった…
+      cur->len = p - start;
       continue;
     }
 
@@ -295,7 +327,26 @@ Node *primary() {
   Token *tok = consume_ident();
   if (tok){
     Node *node = new_node(ND_LVAR);
-    node->offset = (tok->str[0] - 'a' + 1) * 8;
+
+    LVar *lvar = find_lvar(tok);
+    if (lvar) {
+      node->offset = lvar->offset;
+    } else {
+      lvar = calloc(1, sizeof(LVar));
+      lvar->next = locals;
+      lvar->name = tok->str;
+      lvar->len = tok->len;
+      if (locals) {
+        lvar->offset = locals->offset + 8;
+      } else {
+        lvar->offset = 8;
+      }
+      node->offset = lvar->offset;
+      // fprintf(stderr, "%d\n", lvar->offset);
+      // fprintf(stderr, "%s\n", lvar->name);
+
+      locals = lvar;
+    }
     return node;
   }
 

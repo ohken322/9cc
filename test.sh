@@ -16,6 +16,7 @@ assert(){
 	fi
 }
 
+# <<COMMENTOUT
 assert 0 "0;"
 assert 42 "42;"
 assert 21 "5+20-4;"
@@ -45,9 +46,12 @@ assert 1 '1>=0;'
 assert 1 '1>=1;'
 assert 0 '1>=2;'
 
+# COMMENTOUT
+
 assert 2 '(1==1) + 1;'
 
-assert 1 'a=1;'
+assert 1 'hoge=1;'
+assert 2 'a=1; b=2;'
 assert 3 'a=1; b=2; a+b;'
 
 echo OK
