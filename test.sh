@@ -54,4 +54,6 @@ assert 1 'hoge=1;'
 assert 2 'a=1; b=2;'
 assert 3 'a=1; b=2; a+b;'
 
+assert 3 'return 3;'
+
 echo OK
