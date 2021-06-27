@@ -16,7 +16,7 @@ assert(){
 	fi
 }
 
-# <<COMMENTOUT
+#<<COMMENTOUT
 assert 0 "0;"
 assert 42 "42;"
 assert 21 "5+20-4;"
@@ -46,14 +46,17 @@ assert 1 '1>=0;'
 assert 1 '1>=1;'
 assert 0 '1>=2;'
 
-# COMMENTOUT
-
 assert 2 '(1==1) + 1;'
 
 assert 1 'hoge=1;'
 assert 2 'a=1; b=2;'
 assert 3 'a=1; b=2; a+b;'
 
+#COMMENTOUT
+
 assert 3 'return 3;'
+assert 3 'if (0) return 2 ; return 3;'
+assert 5 'a=1; if (a==1) return 5; '
+assert 3 'a=1; if(a==0) return 5; else return 3;'
 
 echo OK

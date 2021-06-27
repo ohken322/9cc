@@ -15,6 +15,7 @@ typedef enum {
   TK_NUM,      // 整数トークン
   TK_EOF,      // 入力の終わりを表すトークン
   TK_RETURN,   // returnを表すトークン
+  TK_IF,       // ifを表すトークン (returnもそうだけど、実は現状使っていない)
 } TokenKind;
 
 typedef struct Token Token;
@@ -27,6 +28,9 @@ struct Token {
   char *str;      // トークン文字列
   int len;
 };
+
+// 現在着目しているトークン
+Token *token;
 
 void error(char *fmt, ...);
 
@@ -68,7 +72,8 @@ typedef enum {
   ND_LT,  // <  (>, >= についてはノードの順を逆にすることで対応する)
   ND_LE,  // <= 
   ND_NUM, // Integer
-  ND_RETURN,
+  ND_RETURN, // return
+  ND_IF,     // if
 } NodeKind;
 
 typedef struct Node Node;
@@ -80,6 +85,11 @@ struct Node {
   Node *rhs;     // 右辺
   int val;       // kindがND_NUMの場合のみ使う
   int offset;    // kindがND_LVARの場合のみ使う
+  
+  // if で使う
+  Node *cond;
+  Node *then;
+  Node *els;
 };
 
 Node *code[100];

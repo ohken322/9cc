@@ -13,6 +13,65 @@ Node *unary();
 
 LVar *locals = NULL;
 
+Node *new_node(NodeKind kind) {
+  Node *node = calloc(1, sizeof(Node));
+  node->kind = kind;
+  return node;
+}
+
+Node *new_binary(NodeKind kind, Node *lhs, Node *rhs) {
+  Node *node = new_node(kind);
+  node->lhs = lhs;
+  node->rhs = rhs;
+  return node;
+}
+
+Node *new_num(int val) {
+  Node *node = new_node(ND_NUM);
+  node->val = val;
+  return node;
+}
+
+// 次のトークンが期待している記号のときには、トークンを1つ読み進めて
+// 真を返す。それ以外の場合には偽を返す。
+bool consume(char *op) {
+  if (token->kind != TK_RESERVED || strlen(op) != token->len || memcmp(token->str, op, token->len))
+    return false;
+  token = token->next;
+  return true;
+}
+
+Token *consume_ident() {
+  Token *tok;
+  if (token->kind != TK_IDENT)
+    return NULL;
+  tok = token;
+  token = token->next;
+  return tok;
+}
+
+// 次のトークンが期待している記号のときには、トークンを1つ読み進める。
+// それ以外の場合にはエラーを報告する。
+void expect(char *op) {
+  if (token->kind != TK_RESERVED || strlen(op) != token->len || memcmp(token->str, op, token->len))
+    error("'%c'ではありません", op);
+  token = token->next;
+}
+
+// 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す。
+// それ以外の場合にはエラーを報告する。
+int expect_number() {
+  if (token->kind != TK_NUM)
+    error("数ではありません");
+  int val = token->val;
+  token = token->next;
+  return val;
+}
+
+bool at_eof() {
+  return token->kind == TK_EOF;
+}
+
 LVar *find_lvar(Token *tok) {
   for (LVar *var=locals; var; var = var->next){
     if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
@@ -34,10 +93,21 @@ Node *stmt() {
   if (consume("return")) {
     node = new_node(ND_RETURN);
     node->lhs = expr();
+    expect(";");
+  } else if (consume("if")) {    
+    expect("(");
+    node = new_node(ND_IF);
+    node->cond = expr();
+    expect(")");
+    node->then = stmt();
+    if (consume("else")){
+      node->els = stmt();
+    }
+    // fprintf(stderr, "%s\n", token->str);
   } else {
     node = expr();
+    expect(";");
   }
-  expect(";");
   return node;
 }
 

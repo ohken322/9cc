@@ -1,5 +1,7 @@
 #include "9cc.h"
 
+int cnt = 1; // 制御構文で使うid
+
 void gen_lval(Node *node) {
   if (node->kind != ND_LVAR)
     error("代入の左辺値が変数ではありません");
@@ -10,6 +12,7 @@ void gen_lval(Node *node) {
 }
 
 void gen(Node *node) {
+  int c;
   switch (node->kind) {
   case ND_RETURN:
     gen(node->lhs);
@@ -17,6 +20,20 @@ void gen(Node *node) {
     printf("  mov rsp, rbp\n");
     printf("  pop rbp\n");
     printf("  ret\n");
+    return;
+  case ND_IF:
+    c = cnt;
+    cnt++;
+    gen(node->cond);
+    printf("  pop rax\n");
+    printf("  cmp rax, 0\n");
+    printf("  je .Lelse%d\n", c);
+    gen(node->then);
+    printf("  jmp .Lend%d\n", c);
+    printf(".Lelse%d:\n", c);    
+    if (node->els)
+      gen(node->els);
+    printf(".Lend%d:\n", c);
     return;
   case ND_NUM:
     printf("  push %d\n", node->val);

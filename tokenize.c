@@ -44,6 +44,7 @@ Token *tokenize(char *p) {
       p++;
       continue;
     }
+    // fprintf(stderr, "%c\n", *p);
 
     if (startswith(p, "==") || startswith(p, "!=") ||
         startswith(p, "<=") || startswith(p, ">=")) {
@@ -52,11 +53,22 @@ Token *tokenize(char *p) {
       continue;
     }
 
-  if (strncmp(p, "return", 6) == 0 && !is_ident2(p[6])) {
-  cur = new_token(TK_RESERVED, cur, p, 6);
-  p += 6;
-  continue;
-}
+    if (strncmp(p, "return", 6) == 0 && !is_ident2(p[6])) {
+      cur = new_token(TK_RESERVED, cur, p, 6);
+      p += 6;
+      continue;
+    }
+
+    if (strncmp(p, "if", 2) == 0 && !is_ident2(p[2])) {
+      cur = new_token(TK_RESERVED, cur, p, 2);
+      p += 2;
+      continue;
+    }
+    if (strncmp(p, "else", 4) == 0 && !is_ident2(p[4])) {
+      cur = new_token(TK_RESERVED, cur, p, 4);
+      p += 4;
+      continue;
+    }
 
     if (strchr("+-*/()<>=;", *p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
@@ -65,7 +77,6 @@ Token *tokenize(char *p) {
     }
 
     if (is_ident1(*p)) {
-      // fprintf(stderr, "%c\n", *p);
       char *start = p;
       do {
         p++;
@@ -82,7 +93,6 @@ Token *tokenize(char *p) {
       cur->len = q - p;
       continue;
     }
-
     error("トークナイズできません");
   }
 
