@@ -78,6 +78,7 @@ typedef enum {
   ND_IF,     // if
   ND_WHILE,  // while
   ND_FOR,    // for
+  ND_BLOCK,  // block code {}
 } NodeKind;
 
 typedef struct Node Node;
@@ -98,6 +99,10 @@ struct Node {
   // for で使う ( for (init; cond; inc)  )
   Node *init;
   Node *inc;
+
+  // block のためのnode配列
+  Node *body;
+  Node *next;
 };
 
 Node *code[100];

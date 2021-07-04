@@ -13,6 +13,7 @@ void gen_lval(Node *node) {
 
 void gen(Node *node) {
   int c;
+  Node *cur;
   switch (node->kind) {
   case ND_RETURN:
     gen(node->lhs);
@@ -20,6 +21,13 @@ void gen(Node *node) {
     printf("  mov rsp, rbp\n");
     printf("  pop rbp\n");
     printf("  ret\n");
+    return;
+  case ND_BLOCK:
+    cur = node->body;
+    while (cur){
+      gen(cur);
+      cur = cur->next;
+    }
     return;
   case ND_IF:
     c = cnt;

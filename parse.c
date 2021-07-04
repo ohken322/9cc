@@ -94,6 +94,13 @@ Node *stmt() {
     node = new_node(ND_RETURN);
     node->lhs = expr();
     expect(";");
+  } else if (consume("{")){
+    node = new_node(ND_BLOCK);
+    Node head = {};
+    Node *cur = &head;
+    while (!consume("}"))
+      cur = cur->next = stmt();
+    node->body = head.next;
   } else if (consume("if")) {    
     expect("(");
     node = new_node(ND_IF);
@@ -126,7 +133,6 @@ Node *stmt() {
       expect(")");
     }
     node->then = stmt();
-    fprintf(stderr, "%s\n", token->str);
   } else {
     node = expr();
     expect(";");
