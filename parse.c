@@ -110,6 +110,23 @@ Node *stmt() {
     node->cond = expr();
     expect(")");
     node->then = stmt();
+  } else if (consume("for")) {    
+    node = new_node(ND_FOR);
+    expect("(");
+    if (!consume(";")){
+      node->init = expr();
+      expect(";");
+    }
+    if (!consume(";")){
+      node->cond = expr();
+      expect(";");
+    }
+    if (!consume(")")){
+      node->inc = expr();
+      expect(")");
+    }
+    node->then = stmt();
+    fprintf(stderr, "%s\n", token->str);
   } else {
     node = expr();
     expect(";");

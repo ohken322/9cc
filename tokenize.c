@@ -76,6 +76,12 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    if (strncmp(p, "for", 3) == 0 && !is_ident2(p[3])) {
+      cur = new_token(TK_RESERVED, cur, p, 3);
+      p += 3;
+      continue;
+    }
+
     if (strchr("+-*/()<>=;", *p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       cur->len = 1;
@@ -99,6 +105,8 @@ Token *tokenize(char *p) {
       cur->len = q - p;
       continue;
     }
+    
+    fprintf(stderr, "%s\n", p);
     error("トークナイズできません");
   }
 
