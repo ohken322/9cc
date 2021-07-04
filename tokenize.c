@@ -70,6 +70,12 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    if (strncmp(p, "while", 5) == 0 && !is_ident2(p[5])) {
+      cur = new_token(TK_RESERVED, cur, p, 5);
+      p += 5;
+      continue;
+    }
+
     if (strchr("+-*/()<>=;", *p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       cur->len = 1;

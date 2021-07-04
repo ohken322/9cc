@@ -104,6 +104,12 @@ Node *stmt() {
       node->els = stmt();
     }
     // fprintf(stderr, "%s\n", token->str);
+  } else if (consume("while")) {    
+    expect("(");
+    node = new_node(ND_WHILE);
+    node->cond = expr();
+    expect(")");
+    node->then = stmt();
   } else {
     node = expr();
     expect(";");
